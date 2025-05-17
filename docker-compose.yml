@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - celebnet
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: celebdb
+      POSTGRES_USER: celebuser
+      POSTGRES_PASSWORD: celebpass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - celebnet
+
+volumes:
+  pgdata:
+
+networks:
+  celebnet:
