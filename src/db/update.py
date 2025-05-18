@@ -1,11 +1,11 @@
 class DataUpdater:
-    def __init__(self, cur):
-        self.cur = cur
+    def __init__(self, cursor):
+        self.cursor = cursor
 
     def update_celeb_bio(self, celeb_id, new_bio):
-        self.cur.execute("""
-            UPDATE CelebDetails
-            SET bio = %s
-            WHERE id = %s;
-        """, (new_bio, celeb_id))
-        print(f"✅ Updated bio for Celeb ID {celeb_id}.")
+        query = """
+        UPDATE CelebDetails
+        SET bio = %s
+        WHERE id = %s;
+        """
+        self.cursor.execute(query, (new_bio, celeb_id))
