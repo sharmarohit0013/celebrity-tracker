@@ -5,12 +5,14 @@ class TableManager:
     def create_tables(self):
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS CelebDetails (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                profession TEXT,
-                birthdate DATE,
-                bio TEXT
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            profession TEXT,
+            birthdate DATE,
+            bio TEXT,
+            UNIQUE(name, profession, birthdate)  -- Assuming name + birthdate uniquely identifies a celeb
             );
+
         """)
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS "user" (

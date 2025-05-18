@@ -1,83 +1,99 @@
 import psycopg2
 import time
 
-DB_CONFIG = {
-    "dbname": "celebdb",
-    "user": "celebuser",
-    "password": "celebpass",
-    "host": "db",
-    "port": "5432"
-}
 
-def create_tables_insert_and_fetch():
-    for i in range(10):
-        try:
-            conn = psycopg2.connect(**DB_CONFIG)
-            print("✅ Connected to PostgreSQL!")
+class PostgresManager:
+    def __init__(self, db_config, retries=10, delay=2):
+        self.db_config = db_config
+        self.retries = retries
+        self.delay = delay
+        self.conn = None
+        self.cur = None
 
-            cur = conn.cursor()
+    def connect(self):
+        for i in range(self.retries):
+            try:
+                self.conn = psycopg2.connect(**self.db_config)
+                self.cur = self.conn.cursor()
+                print("✅ Connected to PostgreSQL!")
+                return
+            except Exception as e:
+                print(f"⏳ Attempt {i+1}: Waiting for DB... ({e})")
+                time.sleep(self.delay)
+        raise ConnectionError("❌ Could not connect after retries.")
 
-            # 1. Create tables
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS CelebDetails (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    profession TEXT,
-                    birthdate DATE,
-                    bio TEXT
-                );
-            """)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS "user" (
-                    id SERIAL PRIMARY KEY,
-                    username TEXT UNIQUE NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            print("✅ Tables created.")
+    def create_tables(self):
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS CelebDetails (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                profession TEXT,
+                birthdate DATE,
+                bio TEXT
+            );
+        """)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS "user" (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        print("✅ Tables created.")
 
-            # 2. Insert sample data
-            cur.execute("""
-                INSERT INTO CelebDetails (name, profession, birthdate, bio)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT DO NOTHING;
-            """, ("Robert Downey Jr.", "Actor", "1965-04-04", "Plays Iron Man in Marvel movies."))
+    def insert_sample_data(self):
+        self.cur.execute("""
+            INSERT INTO CelebDetails (name, profession, birthdate, bio)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT DO NOTHING;
+        """, ("Robert Downey Jr.", "Actor", "1965-04-04", "Plays Iron Man in Marvel movies."))
 
-            # cur.execute("""
-            #     INSERT INTO "user" (username, email, password)
-            #     VALUES (%s, %s, %s)
-            #     ON CONFLICT (username, email) DO NOTHING;
-            # """, ("admin", "admin@example.com", "admin123"))
+        self.cur.execute("""
+            INSERT INTO "user" (username, email, password)
+            VALUES (%s, %s, %s)
+            ON CONFLICT DO NOTHING;
+        """, ("admin", "admin@example.com", "admin123"))
 
-            conn.commit()
-            print("✅ Sample data inserted.")
+        print("✅ Sample data inserted.")
+        self.conn.commit()
 
-            # 3. Fetch and display data from CelebDetails
-            print("\n🎬 CelebDetails Table:")
-            cur.execute("SELECT id, name, profession, birthdate, bio FROM CelebDetails;")
-            celebs = cur.fetchall()
-            for celeb in celebs:
-                print(f"  ID: {celeb[0]}, Name: {celeb[1]}, Profession: {celeb[2]}, Birthdate: {celeb[3]}, Bio: {celeb[4]}")
+    def fetch_data(self):
+        print("\n🎬 CelebDetails Table:")
+        self.cur.execute("SELECT id, name, profession, birthdate, bio FROM CelebDetails;")
+        for row in self.cur.fetchall():
+            print(f"  ID: {row[0]}, Name: {row[1]}, Profession: {row[2]}, Birthdate: {row[3]}, Bio: {row[4]}")
 
-            # # 4. Fetch and display data from user table
-            # print("\n👤 User Table:")
-            # cur.execute('SELECT id, username, email, created_at FROM "user";')
-            # users = cur.fetchall()
-            # for user in users:
-            #     print(f"  ID: {user[0]}, Username: {user[1]}, Email: {user[2]}, Created At: {user[3]}")
+        print("\n👤 User Table:")
+        self.cur.execute('SELECT id, username, email, created_at FROM "user";')
+        for row in self.cur.fetchall():
+            print(f"  ID: {row[0]}, Username: {row[1]}, Email: {row[2]}, Created At: {row[3]}")
 
-            # Close resources
-            cur.close()
-            conn.close()
-            break
+    def close(self):
+        if self.cur:
+            self.cur.close()
+        if self.conn:
+            self.conn.close()
+        print("🔒 Connection closed.")
 
-        except Exception as e:
-            print(f"⏳ Attempt {i+1}: Waiting for DB... ({e})")
-            time.sleep(2)
-    else:
-        print("❌ Could not connect after retries.")
 
 if __name__ == "__main__":
-    create_tables_insert_and_fetch()
+    DB_CONFIG = {
+        "dbname": "celebdb",
+        "user": "celebuser",
+        "password": "celebpass",
+        "host": "db",
+        "port": "5432"
+    }
+
+    manager = PostgresManager(DB_CONFIG)
+    try:
+        manager.connect()
+        manager.create_tables()
+        manager.insert_sample_data()
+        manager.fetch_data()
+    except Exception as e:
+        print(f"❌ Error: {e}")
+    finally:
+        manager.close()
