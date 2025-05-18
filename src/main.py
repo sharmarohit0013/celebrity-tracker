@@ -7,6 +7,12 @@ from db.update import DataUpdater
 from db.delete import DataDeleter
 
 def main():
+    # Sample initial data
+    name = "Leonardo DiCaprio"
+    profession = "Actor"
+    birthdate = "1974-11-11"
+    bio = "American actor and producer."
+
     for i in range(10):
         try:
             conn = get_connection()
@@ -16,7 +22,12 @@ def main():
             TableManager(cur).create_tables()
             print("✅ Tables created.")
 
-            DataInserter(cur).insert_celeb(name, profession, birthdate, bio)
+            inserter = DataInserter(cur)
+            updater = DataUpdater(cur)
+            deleter = DataDeleter(cur)
+            fetcher = DataFetcher(cur)
+
+            inserter.insert_celeb(name, profession, birthdate, bio)
             print("✅ Sample data inserted.")
 
             # 🔽 Custom INSERT from user
@@ -26,7 +37,8 @@ def main():
                 profession = input("Enter profession: ")
                 birthdate = input("Enter birthdate (YYYY-MM-DD): ")
                 bio = input("Enter bio: ")
-                DataInserter(cur).insert_celebrity(name, profession, birthdate, bio)
+                inserter.insert_celeb(name, profession, birthdate, bio)
+                conn.commit()
                 print("✅ Celebrity inserted.")
 
             # 🔽 Custom UPDATE from user
@@ -34,21 +46,23 @@ def main():
             if choice == 'y':
                 celeb_id = int(input("Enter celebrity ID to update: "))
                 new_bio = input("Enter new bio: ")
-                DataUpdater(cur).update_celeb_bio(celeb_id, new_bio)
+                updater.update_celeb_bio(celeb_id, new_bio)
+                conn.commit()
                 print(f"✅ Updated bio for celebrity ID {celeb_id}.")
 
             # 🔽 Custom DELETE from user
             choice = input("Do you want to delete a celebrity? (y/n): ").lower()
             if choice == 'y':
                 celeb_id = int(input("Enter celebrity ID to delete: "))
-                DataDeleter(cur).delete_celeb_by_id(celeb_id)
+                deleter.delete_celeb_by_id(celeb_id)
+                conn.commit()
                 print(f"🗑️ Deleted celebrity with ID {celeb_id}.")
 
             # 🔽 Fetch celebrity by partial name
             choice = input("Do you want to search celebrities by name? (y/n): ").lower()
             if choice == 'y':
                 partial_name = input("Enter partial/full celebrity name: ")
-                results = DataFetcher(cur).individual_celeb(partial_name)
+                results = fetcher.individual_celeb(partial_name)
                 if results:
                     print("\n🎬 Search Results:")
                     for celeb in results:
@@ -57,7 +71,7 @@ def main():
                     print("⚠️ No celebrities found matching that name.")
 
             # Fetch all data
-            celebs = DataFetcher(cur).fetch_celebs()
+            celebs = fetcher.fetch_celebs()
             print("\n🎬 CelebDetails Table:")
             for c in celebs:
                 print(f"  ID: {c[0]}, Name: {c[1]}, Profession: {c[2]}, Birthdate: {c[3]}, Bio: {c[4]}")
