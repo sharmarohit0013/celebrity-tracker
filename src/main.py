@@ -16,7 +16,7 @@ def main():
             TableManager(cur).create_tables()
             print("✅ Tables created.")
 
-            DataInserter(cur).insert_sample_data()
+            DataInserter(cur).insert_celeb(name, profession, birthdate, bio)
             print("✅ Sample data inserted.")
 
             # 🔽 Custom INSERT from user
@@ -76,4 +76,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
